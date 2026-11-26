@@ -17,7 +17,9 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -r requirements.txt
-      - run: python scanner.py --backtest --period ${{ inputs.period }} | tee output/backtest_summary.txt
+      - run: |
+          set -o pipefail
+          python scanner.py --backtest --period ${{ inputs.period }} | tee output/backtest_summary.txt
       - uses: actions/upload-artifact@v4
         with:
           name: backtest

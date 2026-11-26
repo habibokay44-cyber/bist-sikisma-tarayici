@@ -4,3 +4,4 @@ numpy>=1.26
 mplfinance>=0.12.10b0
 matplotlib>=3.8
 requests>=2.31
+six>=1.16
