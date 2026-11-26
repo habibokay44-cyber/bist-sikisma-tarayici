@@ -9,13 +9,15 @@ MAX_CONTRACTION = None    # mum boyu küçülme şartı (örn 0.9). None = filtr
                           # (BIST'te uzun fitiller yüzünden sert filtre iyi base'leri eliyor)
 ATR_LEN = 14
 PRIOR_BARS = 5            # kutudan önceki kaç muma bakılsın
+IMPULSE_BODY_ATR = 0.9    # önceki mumlardan en az biri: gövdesi >= ATR x bu ...
+IMPULSE_VOL = 1.2         # ... ve hacmi >= Hacim SMA20 x bu (hacimli itki mumu)
 MIN_PRIOR_RANGE = 2.0     # önceki mumların fiyat aralığı / kutu yüksekliği: önce hareket, sonra sıkışma
 
 # --- Temas (direnç / destek) ---
 MIN_TOUCHES = 2           # tavana en az kaç fitil değmeli
 MIN_SUP_TOUCHES = 2       # tabana en az kaç fitil değmeli (daralan üçgende şart aranmaz)
 MAX_WICK_OUTLIERS = 1     # kutudan taşmasına izin verilen fitil sayısı (her yönde, 4+ mumluk kutuda)
-MAX_DRIFT = 0.3           # kutu içinde kapanışların kayması / kutu yüksekliği (yataylık)
+MAX_DRIFT = 0.22          # kutu içinde kapanışların kayması / kutu yüksekliği (yataylık)
 TOUCH_TOL_ATR = 0.2       # temas toleransı = max(ATR*bu, fiyat*TOUCH_TOL_PCT/100)
 TOUCH_TOL_PCT = 0.5
 

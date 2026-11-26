@@ -11,7 +11,7 @@ Fiyatın dar bir kutuya sıkıştığı hisseleri bulur ve kutunun direncini **t
 
 ## Mantık
 
-1. **Önce hareket:** Kutudan önceki 5 mum, kutunun en az 2 katı genişlikte bir alanda gezmiş olmalı (yön önemsiz). Haftalardır yatay giden hisseler elenir.
+1. **Önce hacimli hareket:** Kutudan önceki 5 mum, kutunun en az 2 katı genişlikte bir alanda gezmiş olmalı ve aralarında en az bir büyük gövdeli (≥ 0,9 ATR), ortalamanın üstünde hacimli (≥ 1,2 × SMA20) mum olmalı. Yön önemsiz. Yatay ya da hacimsiz sürünen hisseler elenir.
 2. **Kutu:** Son 3–10 mum fitilleriyle bir kutuya sığar. Tavana en az 2, tabana en az 2 fitil değmiş olmalı (daralan üçgende taban şartı aranmaz). Her yönde en fazla 1 fitil taşabilir, son mum taşamaz. Kapanışların hepsi kutunun içinde.
 3. **Yataylık:** Kutu içinde kapanışlar kaymamalı (merdiven gibi düşen/çıkan fiyat sıkışma sayılmaz).
 4. **Durum:**

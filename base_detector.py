@@ -94,6 +94,15 @@ def find_base(df: pd.DataFrame, end: int) -> dict | None:
         prior_range = (prior["High"].max() - prior["Low"].min()) / height
         if prior_range < C.MIN_PRIOR_RANGE:
             continue
+        # Hacimli itki: önceki mumlardan biri büyük gövdeli ve ortalamanın üstünde hacimli olmalı
+        k = max(s - C.PRIOR_BARS - 1, 0)
+        p_atr, p_vol = df["ATR"].iat[k], df["VolSMA"].iat[k]
+        if not (np.isfinite(p_atr) and np.isfinite(p_vol) and p_vol > 0):
+            continue
+        body = (prior["Close"] - prior["Open"]).abs()
+        impulse = ((body >= C.IMPULSE_BODY_ATR * p_atr) & (prior["Volume"] >= C.IMPULSE_VOL * p_vol)).any()
+        if not impulse:
+            continue
         # Yataylık: kapanışların ilk ve son yarısının ortalaması arasındaki kayma
         half = max(n // 2, 1)
         drift = abs(closes[-half:].mean() - closes[:half].mean()) / height
