@@ -31,30 +31,32 @@ def add_indicators(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def _best_level(levels, reach, body_edge, closes, tol, side):
-    """En çok temas alan seviyeyi bul.
+def _edge(values, closes, tol, side, allow_out):
+    """Kutunun gerçek tavanı/tabanı.
 
-    side="res": mumun tepesi seviyeye ulaşmış ama gövdesi üstünde kapanmamış.
-    side="sup": mumun dibi seviyeye inmiş ama gövdesi altında kapanmamış.
+    Tavan: en düşük seviye öyle ki en fazla `allow_out` fitil bunun üstüne taşmış
+    ve hiçbir kapanış üstünde değil. Temas = fitili bu seviyeye tolerans içinde değen mum sayısı.
     """
-    best = None
-    for L in np.unique(np.round(levels, 6)):
-        if side == "res" and (closes > L + tol).any():   # kutu içinde üstünde kapanış varsa direnç değil
-            continue
-        if side == "sup" and (closes < L - tol).any():
-            continue
-        # Temas: mumun fitili ya da gövde kenarı seviyeye tolerans içinde değmiş (mum başına 1)
-        touches = int(((np.abs(reach - L) <= tol) | (np.abs(body_edge - L) <= tol)).sum())
-        # Eşitlikte dışa doğru olanı seç (gerçek tavan/taban)
-        if best is None or touches > best[1] or (
-            touches == best[1] and ((side == "res" and L > best[0]) or (side == "sup" and L < best[0]))
-        ):
-            best = (float(L), touches)
-    return best
+    order = np.sort(values) if side == "res" else np.sort(values)[::-1]
+    for L in order:
+        if side == "res":
+            if (values > L + tol).sum() > allow_out or (closes > L + tol).any():
+                continue
+        else:
+            if (values < L - tol).sum() > allow_out or (closes < L - tol).any():
+                continue
+        touches = int((np.abs(values - L) <= tol).sum())
+        return float(L), touches
+    return None
 
 
 def find_base(df: pd.DataFrame, end: int) -> dict | None:
-    """`end` indeksinde biten en uzun geçerli kutuyu döndürür (df göstergeli olmalı)."""
+    """`end` indeksinde biten en uzun geçerli kutuyu döndürür (df göstergeli olmalı).
+
+    Kutu fitillerle tanımlanır: tavana ve tabana en az MIN_TOUCHES kez değilmiş olmalı,
+    kapanışların hepsi içinde kalmalı. Son mum kutudan taşan fitil olamaz
+    (hâlâ düşen/yükselen fiyat sıkışma sayılmaz).
+    """
     for n in range(C.MAX_BASE_LEN, C.MIN_BASE_LEN - 1, -1):
         s = end - n + 1
         if s - 1 < C.ATR_LEN + 1:
@@ -65,53 +67,54 @@ def find_base(df: pd.DataFrame, end: int) -> dict | None:
         if not np.isfinite(ref_atr) or ref_atr <= 0:
             continue
 
-        top, bot = w["BodyHi"].max(), w["BodyLo"].min()
-        height = top - bot
-        height_atr = height / ref_atr
-        height_pct = height / price * 100
-        contraction = w["TR"].mean() / ref_atr
-        if height_atr > C.MAX_HEIGHT_ATR or height_pct > C.MAX_HEIGHT_PCT:
+        tol = max(C.TOUCH_TOL_ATR * ref_atr, price * C.TOUCH_TOL_PCT / 100)
+        highs, lows, closes = w["High"].to_numpy(), w["Low"].to_numpy(), w["Close"].to_numpy()
+        allow = C.MAX_WICK_OUTLIERS if n >= 4 else 0
+        res = _edge(highs, closes, tol, "res", allow)
+        sup = _edge(lows, closes, tol, "sup", allow)
+        if res is None or sup is None:
             continue
-        if C.MAX_CONTRACTION is not None and contraction > C.MAX_CONTRACTION:
+        R, rt = res
+        S, st = sup
+        # Daralan üçgen: diplerin hepsi yükseliyor, tepeler alçalıyor (GENIL tipi)
+        triangle = bool(np.all(np.diff(lows) >= 0) and np.all(np.diff(highs) <= 0))
+        if rt < C.MIN_TOUCHES or (st < C.MIN_SUP_TOUCHES and not triangle):
+            continue
+        # Son mum kutunun dışına fitil atmışsa hâlâ hareket ediyor demektir
+        if highs[-1] > R + tol or lows[-1] < S - tol:
             continue
 
-        tol = max(C.TOUCH_TOL_ATR * ref_atr, price * C.TOUCH_TOL_PCT / 100)
-        closes = w["Close"].to_numpy()
-        res = _best_level(
-            np.concatenate([w["High"].to_numpy(), w["BodyHi"].to_numpy()]),
-            w["High"].to_numpy(), w["BodyHi"].to_numpy(), closes, tol, "res",
-        )
-        sup = _best_level(
-            np.concatenate([w["Low"].to_numpy(), w["BodyLo"].to_numpy()]),
-            w["Low"].to_numpy(), w["BodyLo"].to_numpy(), closes, tol, "sup",
-        )
-        if res is None or res[1] < C.MIN_TOUCHES:
+        height = R - S
+        height_atr = height / ref_atr
+        height_pct = height / price * 100
+        if height <= 0 or height_atr > C.MAX_HEIGHT_ATR or height_pct > C.MAX_HEIGHT_PCT:
+            continue
+        # Önce hareket olmalı: kutudan önceki mumlar kutudan çok daha geniş bir alanda gezmiş
+        prior = df.iloc[max(s - C.PRIOR_BARS, 0) : s]
+        prior_range = (prior["High"].max() - prior["Low"].min()) / height
+        if prior_range < C.MIN_PRIOR_RANGE:
+            continue
+        # Yataylık: kapanışların ilk ve son yarısının ortalaması arasındaki kayma
+        half = max(n // 2, 1)
+        drift = abs(closes[-half:].mean() - closes[:half].mean()) / height
+        if drift > C.MAX_DRIFT:
+            continue
+        contraction = w["TR"].mean() / ref_atr
+        if C.MAX_CONTRACTION is not None and contraction > C.MAX_CONTRACTION:
             continue
 
         vol_sma = df["VolSMA"].iat[s - 1]
         vol_ratio = w["Volume"].mean() / vol_sma if vol_sma and np.isfinite(vol_sma) else np.nan
-
-        # Ana mum (mother bar): sonraki mumların kaçı ilk mumun aralığında
         first = w.iloc[0]
         inside = int(((w["High"].iloc[1:] <= first["High"]) & (w["Low"].iloc[1:] >= first["Low"])).sum())
 
-        support = sup[0] if sup else float(w["Low"].min())
         return {
-            "start": s,
-            "end": end,
-            "length": n,
-            "box_top": float(top),
-            "box_bottom": float(bot),
-            "resistance": res[0],
-            "res_touches": res[1],
-            "support": support,
-            "sup_touches": sup[1] if sup else 0,
-            "height_atr": float(height_atr),
-            "height_pct": float(height_pct),
-            "contraction": float(contraction),
-            "vol_ratio": float(vol_ratio),
-            "inside_bars": inside,
-            "ref_atr": float(ref_atr),
+            "start": s, "end": end, "length": n,
+            "box_top": float(w["BodyHi"].max()), "box_bottom": float(w["BodyLo"].min()),
+            "resistance": R, "res_touches": rt, "support": S, "sup_touches": st,
+            "height_atr": float(height_atr), "height_pct": float(height_pct), "drift": float(drift), "prior_range": float(prior_range),
+            "contraction": float(contraction), "vol_ratio": float(vol_ratio),
+            "inside_bars": inside, "ref_atr": float(ref_atr),
         }
     return None
 
@@ -122,15 +125,15 @@ def score(b: dict) -> float:
     dry = float(np.clip(1 - b["vol_ratio"], -1, 1)) if np.isfinite(b["vol_ratio"]) else 0.0
     return round(
         35 * tight + 25 * contr + 20 * dry
-        + 4 * min(b["res_touches"], 5) + 1.5 * min(b["length"], 10)
+        + 3 * min(b["res_touches"], 5) + 2 * min(b["sup_touches"], 5) - 15 * b["drift"] + 1.5 * min(b["length"], 10)
         + 2 * min(b["inside_bars"], 5),
         1,
     )
 
 
-def is_breakout(b: dict, close: float) -> bool:
-    """Kapanış hem dirence hem kutunun gövde tavanına göre üstte olmalı (kutudan temiz çıkış)."""
-    return close > b["resistance"] and close > b["box_top"]
+def is_breakout(b: dict, close: float, prev_close: float) -> bool:
+    """İlk kırılım: bugün kutu tavanının (direnç) üstünde kapanış, dün içinde."""
+    return close > b["resistance"] and prev_close <= b["resistance"]
 
 
 def scan_symbol(df: pd.DataFrame) -> dict | None:
@@ -143,7 +146,7 @@ def scan_symbol(df: pd.DataFrame) -> dict | None:
 
     # 1) Dün biten kutu + bugün kırılım
     b = find_base(df, last - 1)
-    if b and is_breakout(b, close):
+    if b and is_breakout(b, close, df["Close"].iat[last - 1]):
         vr = df["Volume"].iat[last] / df["VolSMA"].iat[last - 1]
         b.update(status="KIRILIM", breakout_vol=round(float(vr), 2))
         b["score"] = score(b) + (10 if vr >= C.BREAKOUT_MIN_VOL else -10)
@@ -151,7 +154,7 @@ def scan_symbol(df: pd.DataFrame) -> dict | None:
 
     # 2) Hâlâ sıkışmada (bugün dahil kutu)
     b = find_base(df, last)
-    if b and not is_breakout(b, close):
+    if b and close <= b["resistance"]:
         dist = max((b["resistance"] / close - 1) * 100, 0.0)
         if dist <= C.MAX_DIST_TO_RES_PCT:
             b.update(status="SIKIŞMA", breakout_vol=np.nan)
@@ -180,7 +183,7 @@ def backtest_symbol(df: pd.DataFrame) -> list[dict]:
     n = len(df)
     while i < n - 1:
         b = find_base(df, i - 1)
-        if not (b and is_breakout(b, df["Close"].iat[i])):
+        if not (b and is_breakout(b, df["Close"].iat[i], df["Close"].iat[i - 1])):
             i += 1
             continue
         entry = df["Close"].iat[i]

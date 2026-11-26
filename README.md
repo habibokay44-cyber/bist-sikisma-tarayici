@@ -11,14 +11,13 @@ Fiyatın dar bir kutuya sıkıştığı hisseleri bulur ve kutunun direncini **t
 
 ## Mantık
 
-1. **Kutu:** Son 3–15 mumun gövdeleri bir kutuya konur. En uzun geçerli kutu seçilir.
-   - Kutu yüksekliği ≤ kutu öncesi ATR × 2 ve ≤ fiyatın %12'si (`config.py`).
-   - Önceki trendin yönü önemsiz.
-2. **Direnç:** Kutu içinde fitillerin/gövdelerin en çok çarpıp döndüğü seviye (tolerans: ATR × 0,25 veya %0,6). En az 2 temas. Destek de aynı mantıkla bulunur.
-3. **Durum:**
-   - `SIKIŞMA`: hâlâ kutuda, dirence ≤ %4 uzaklıkta. Ertesi gün 5/15 dk'da izle.
-   - `KIRILIM`: bugün hem direncin hem kutu tavanının üstünde kapattı.
-4. **Skor:** kutu darlığı, mumların küçülmesi, hacmin kuruması (Hacim/SMA20 < 1), temas sayısı, kutu uzunluğu, ana mum (inside bar) sayısı.
+1. **Önce hareket:** Kutudan önceki 5 mum, kutunun en az 2 katı genişlikte bir alanda gezmiş olmalı (yön önemsiz). Haftalardır yatay giden hisseler elenir.
+2. **Kutu:** Son 3–10 mum fitilleriyle bir kutuya sığar. Tavana en az 2, tabana en az 2 fitil değmiş olmalı (daralan üçgende taban şartı aranmaz). Her yönde en fazla 1 fitil taşabilir, son mum taşamaz. Kapanışların hepsi kutunun içinde.
+3. **Yataylık:** Kutu içinde kapanışlar kaymamalı (merdiven gibi düşen/çıkan fiyat sıkışma sayılmaz).
+4. **Durum:**
+   - `SIKIŞMA`: hâlâ kutuda, dirence ≤ %4 uzaklıkta.
+   - `KIRILIM`: bugün kutunun tavanı üstünde kapattı, dün içindeydi (sadece ilk kırılım günü).
+5. **Skor:** kutu darlığı, mumların küçülmesi, hacim, temas sayısı, yataylık.
 
 Likidite filtresi: fiyat ≥ 1 TL, 20 günlük ortalama işlem hacmi ≥ 20 milyon TL.
 

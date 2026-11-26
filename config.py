@@ -2,17 +2,22 @@
 
 # --- Sıkışma kutusu (base) ---
 MIN_BASE_LEN = 3          # kutudaki en az mum sayısı
-MAX_BASE_LEN = 15         # kutudaki en fazla mum sayısı
-MAX_HEIGHT_ATR = 2.0      # kutu yüksekliği (gövdeler) / kutu öncesi ATR  -> küçük = sıkı
+MAX_BASE_LEN = 10         # kutudaki en fazla mum sayısı
+MAX_HEIGHT_ATR = 2.5      # kutu yüksekliği (fitiller) / kutu öncesi ATR  -> küçük = sıkı
 MAX_HEIGHT_PCT = 12.0     # kutu yüksekliği, fiyatın % si olarak üst sınır
 MAX_CONTRACTION = None    # mum boyu küçülme şartı (örn 0.9). None = filtre değil sadece skora etki eder
                           # (BIST'te uzun fitiller yüzünden sert filtre iyi base'leri eliyor)
 ATR_LEN = 14
+PRIOR_BARS = 5            # kutudan önceki kaç muma bakılsın
+MIN_PRIOR_RANGE = 2.0     # önceki mumların fiyat aralığı / kutu yüksekliği: önce hareket, sonra sıkışma
 
 # --- Temas (direnç / destek) ---
-MIN_TOUCHES = 2           # direnç seviyesine en az kaç mum çarpıp dönmeli
-TOUCH_TOL_ATR = 0.25      # temas toleransı = max(ATR*bu, fiyat*TOUCH_TOL_PCT/100)
-TOUCH_TOL_PCT = 0.6
+MIN_TOUCHES = 2           # tavana en az kaç fitil değmeli
+MIN_SUP_TOUCHES = 2       # tabana en az kaç fitil değmeli (daralan üçgende şart aranmaz)
+MAX_WICK_OUTLIERS = 1     # kutudan taşmasına izin verilen fitil sayısı (her yönde, 4+ mumluk kutuda)
+MAX_DRIFT = 0.3           # kutu içinde kapanışların kayması / kutu yüksekliği (yataylık)
+TOUCH_TOL_ATR = 0.2       # temas toleransı = max(ATR*bu, fiyat*TOUCH_TOL_PCT/100)
+TOUCH_TOL_PCT = 0.5
 
 # --- Hacim ---
 VOL_SMA = 20              # TradingView'deki Hacim(20, SMA) ile aynı
