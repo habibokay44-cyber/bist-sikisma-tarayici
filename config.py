@@ -4,6 +4,7 @@
 MIN_BASE_LEN = 3          # kutudaki en az mum sayısı
 MAX_BASE_LEN = 10         # kutudaki en fazla mum sayısı
 MAX_HEIGHT_ATR = 2.5      # kutu yüksekliği (fitiller) / kutu öncesi ATR  -> küçük = sıkı
+MIN_HEIGHT_TICKS = 6      # kutu en az kaç fiyat adımı (tick) yüksekliğinde olmalı (1 TL civarı hisselerde sahte düzlük olmasın)
 MAX_HEIGHT_PCT = 12.0     # kutu yüksekliği, fiyatın % si olarak üst sınır
 MAX_CONTRACTION = None    # mum boyu küçülme şartı (örn 0.9). None = filtre değil sadece skora etki eder
                           # (BIST'te uzun fitiller yüzünden sert filtre iyi base'leri eliyor)

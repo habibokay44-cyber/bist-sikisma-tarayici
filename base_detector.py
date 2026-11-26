@@ -50,6 +50,14 @@ def _edge(values, closes, tol, side, allow_out):
     return None
 
 
+def bist_tick(price: float) -> float:
+    """BIST pay piyasası fiyat adımı."""
+    for limit, tick in [(20, 0.01), (50, 0.02), (100, 0.05), (250, 0.1), (500, 0.25), (1000, 0.5), (2500, 1.0)]:
+        if price < limit:
+            return tick
+    return 2.5
+
+
 def find_base(df: pd.DataFrame, end: int) -> dict | None:
     """`end` indeksinde biten en uzun geçerli kutuyu döndürür (df göstergeli olmalı).
 
@@ -87,6 +95,8 @@ def find_base(df: pd.DataFrame, end: int) -> dict | None:
         height = R - S
         height_atr = height / ref_atr
         height_pct = height / price * 100
+        if height < C.MIN_HEIGHT_TICKS * bist_tick(price) - 1e-9:
+            continue
         if height <= 0 or height_atr > C.MAX_HEIGHT_ATR or height_pct > C.MAX_HEIGHT_PCT:
             continue
         # Önce hareket olmalı: kutudan önceki mumlar kutudan çok daha geniş bir alanda gezmiş
