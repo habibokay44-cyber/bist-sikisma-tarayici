@@ -41,7 +41,7 @@ def liquid(df: pd.DataFrame) -> bool:
 
 
 def draw_chart(sym: str, df: pd.DataFrame, r: dict) -> str:
-    bars = 70
+    bars = 45
     d = df.tail(bars)
     offset = len(df) - len(d)
     s, e = r["start"] - offset, r["end"] - offset
@@ -49,12 +49,13 @@ def draw_chart(sym: str, df: pd.DataFrame, r: dict) -> str:
     fig, axes = mpf.plot(
         d, type="candle", style=TV_STYLE, volume=True, returnfig=True, figsize=(9, 6),
         addplot=[mpf.make_addplot(vol_sma, panel=1, color="#2962ff", width=1)],
-        hlines=dict(hlines=[r["resistance"], r["support"]], colors=["#2962ff", "#ff9800"],
-                    linewidths=[1.2, 0.9], linestyle=["-", "--"]),
         title=f"\n{sym}  {r['status']}  kapanış {r['close']:.2f}  direnç {r['resistance']:.2f} "
               f"({r['res_touches']} temas)  destek {r['support']:.2f}",
     )
     ax = axes[0]
+    x0 = max(s, 0) - 0.5
+    ax.hlines(r["resistance"], x0, len(d) + 1, colors="#2962ff", linewidth=1.4)
+    ax.hlines(r["support"], x0, len(d) + 1, colors="#ff9800", linewidth=1.0, linestyles="--")
     if s >= 0:
         ax.add_patch(mpatches.Rectangle((s - 0.5, r["box_bottom"]), e - s + 1,
                                         r["box_top"] - r["box_bottom"],
@@ -92,6 +93,7 @@ def run_scan() -> None:
             "risk_pct", "length", "height_atr", "contraction", "vol_ratio", "breakout_vol",
             "inside_bars", "date"]
     res = res[cols].round(3)
+    res["score"] = res["score"].round(1)
     res.to_csv(OUT / "results.csv", index=False)
 
     top = res.head(C.TOP_N_CHARTS)
@@ -101,7 +103,9 @@ def run_scan() -> None:
     lines = [f"# BIST Sıkışma Taraması — {now}", ""]
     for status, title in [("KIRILIM", "Bugün kırılım yapanlar"), ("SIKIŞMA", "Sıkışmada (yarın izle)")]:
         part = res[res["status"] == status]
-        lines += [f"## {title} ({len(part)})", "",
+        total = len(part)
+        part = part.head(C.MAX_REPORT_ROWS)
+        lines += [f"## {title} ({total}, en iyi {len(part)} gösteriliyor — tamamı results.csv'de)", "",
                   "| Hisse | Skor | Kapanış | Direnç (temas) | Destek | Dirence % | Risk % | Mum | Hacim/SMA |",
                   "|---|---|---|---|---|---|---|---|---|"]
         for _, x in part.iterrows():

@@ -24,6 +24,7 @@ MIN_AVG_TURNOVER_TL = 20_000_000   # son 20 gün ortalama işlem hacmi (TL)
 
 # --- İzleme listesi ---
 MAX_DIST_TO_RES_PCT = 4.0  # sıkışmadakiler: dirence en fazla % kaç uzaklıkta olsun
+MAX_REPORT_ROWS = 40       # raporda her bölümde en fazla kaç satır
 TOP_N_CHARTS = 25          # grafiği çizilecek en iyi aday sayısı
 
 # --- Backtest ---
